@@ -25,7 +25,9 @@
 
 %Interpretação Clínica:
 
-%A média mais baixa em variáveis de frequência para o grupo Parkinson sugere que a voz desses pacientes pode ser menos modulada e com menor amplitude de variação. O aumento no desvio padrão indica uma maior dificuldade em manter consistência vocal, o que é característico dos sintomas motores de Parkinson, como a rigidez e o tremor que dificultam o controle preciso dos músculos vocais.
+%A média mais baixa em variáveis de frequência para o grupo Parkinson sugere que a voz desses pacientes pode ser menos modulada
+%e com menor amplitude de variação. O aumento no desvio padrão indica uma maior dificuldade em manter consistência vocal, o que
+%é característico dos sintomas motores de Parkinson, como a rigidez e o tremor que dificultam o controle preciso dos músculos vocais.
 
                                         % Anáise 3.3 %
 
@@ -55,12 +57,6 @@ function corr = pearson_corr(x, y)
     corr = sum(xm .* ym) / sqrt(sum(xm .^ 2) * sum(ym .^ 2));  % Calcula a correlação de Pearson entre x e y.
 end
 
-% Function to solve linear system using LU decomposition
-function x = solve_lu(A, b)
-    [L, U, P] = lu(A);  % Decomposição LU da matriz A com pivotamento (para maior estabilidade numérica).
-    y = L \ (P * b);    % Resolve o sistema L * y = P * b usando substituição progressiva.
-    x = U \ y;          % Resolve o sistema U * x = y usando substituição regressiva.
-end
 
 % Function for linear regression
 function [slope, intercept] = linear_regression(x, y)
@@ -97,13 +93,32 @@ function [coef1, coef2, Sr1, Sr2, r2_1, r2_2, syx1, syx2] = regressao_dupla(x1, 
     syx2 = sqrt(Sr2 / (n - 2));  % Calcula o erro padrão da estimativa para o modelo 2.
 end
 
-% Auxiliary function to solve linear systems using LU decomposition
-function x = lu_solve(A, b)
-    [L, U, P] = lu(A);  % Decomposição LU da matriz A com pivotamento.
-    y = L \ (P * b);    % Resolve o sistema L * y = P * b.
-    x = U \ y;          % Resolve o sistema U * x = y.
-end
-% ===================== Main Script =====================
+% Função solve_lu para resolver Ax = b usando decomposição LU
+function x = solve_lu(A, b)
+    [L, U, P] = lu(A);  % Decomposição LU com pivotamento
+    y = substituicao_progressiva(L, P * b);  % Resolve L * y = P * b
+    x = substituicao_regressiva(U, y);       % Resolve U * x = y
+endfunction
+
+% Função para substituição progressiva (resolvendo L*y = b)
+function y = substituicao_progressiva(L, b)
+    n = length(b);
+    y = zeros(n, 1);
+    for i = 1:n
+        y(i) = (b(i) - L(i, 1:i-1) * y(1:i-1)) / L(i, i);
+    endfor
+endfunction
+
+% Função para substituição regressiva (resolvendo U*x = y)
+function x = substituicao_regressiva(U, y)
+    n = length(y);
+    x = zeros(n, 1);
+    for i = n:-1:1
+        x(i) = (y(i) - U(i, i+1:n) * x(i+1:n)) / U(i, i);
+    endfor
+endfunction
+
+% ===================== Main Script ===================== %
 
 % Load the data from the CSV file
 data = csvread('parkinson_mdvp.csv', 1, 0); % Ignora o cabeçalho ao ler o arquivo CSV.
@@ -392,5 +407,4 @@ disp('Sum of Residuals of the Best Model:'), disp(best_Sr);
 disp('Coefficient of Determination r^2 of the Best Model:'), disp(best_r2);
 disp('Standard Deviation of Residuals of the Best Model:'), disp(best_syx);
 disp('===========================================================');
-
 
