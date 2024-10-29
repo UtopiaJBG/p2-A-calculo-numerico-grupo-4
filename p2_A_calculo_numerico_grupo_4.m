@@ -31,12 +31,12 @@
 
                                         % Anáise 3.3 %
 
+%Baixo Coeficiente de Determinação (R²): O valor de 𝑅2 = 0.1414 indica que o modelo explica apenas cerca de 14,14% da variabilidade dos
+%dados de resposta. Em modelos de regressão, um 𝑅2 mais próximo de 1 sugere que o modelo é eficaz para capturar a variação da variável dependente.
+%No entanto, com um valor de 0,1414, a maior parte da variabilidade no status de Parkinson não é explicada por essa combinação de variáveis.
 
-
-
-
-
-
+%Desvio Padrão dos Resíduos (syx): O desvio padrão dos resíduos, 𝑠𝑦𝑥=0.4023, sugere que as previsões do modelo têm uma variação relativamente alta
+%em torno da linha de regressão. Isso indica que o modelo apresenta um erro considerável ao prever novos dados, o que reduz sua confiabilidade para diagnósticos.
 
 
 
@@ -57,42 +57,6 @@ function corr = pearson_corr(x, y)
     corr = sum(xm .* ym) / sqrt(sum(xm .^ 2) * sum(ym .^ 2));  % Calcula a correlação de Pearson entre x e y.
 end
 
-
-% Function for linear regression
-function [slope, intercept] = linear_regression(x, y)
-    n = length(x);  % Obtém o número de pontos de dados.
-    X = [ones(n, 1), x];  % Cria a matriz de design X com uma coluna de 1s (para o intercepto).
-    A = X' * X;  % Calcula a matriz A como o produto da transposta de X com X.
-    b = X' * y;  % Calcula o vetor b como o produto da transposta de X com y.
-    coeffs = solve_lu(A, b);  % Usa a função solve_lu para resolver o sistema linear Ax = b.
-    intercept = coeffs(1);  % O primeiro coeficiente é o intercepto da regressão.
-    slope = coeffs(2);  % O segundo coeficiente é a inclinação da linha de regressão.
-end
-
-% Function for performing double regression and obtaining metrics
-function [coef1, coef2, Sr1, Sr2, r2_1, r2_2, syx1, syx2] = regressao_dupla(x1, y1, x2, y2)
-    % Number of data points
-    n = length(x1);  % Obtém o número de pontos de dados.
-
-    % Model 1
-    A1 = [x1, ones(n, 1)];  % Cria a matriz de design A1 para o primeiro modelo (x1).
-    coef1 = lu_solve(A1, y1);  % Resolve o sistema para obter os coeficientes do modelo 1.
-    y1_pred = A1 * coef1;  % Calcula as previsões para y1 usando os coeficientes obtidos.
-    Sr1 = sum((y1 - y1_pred).^2);  % Calcula a soma dos resíduos quadráticos para o modelo 1.
-    St1 = sum((y1 - mean(y1)).^2);  % Calcula a soma total dos quadrados para o modelo 1.
-    r2_1 = 1 - (Sr1 / St1);  % Calcula o coeficiente de determinação R² para o modelo 1.
-    syx1 = sqrt(Sr1 / (n - 2));  % Calcula o erro padrão da estimativa para o modelo 1.
-
-    % Model 2
-    A2 = [x2, ones(n, 1)];  % Cria a matriz de design A2 para o segundo modelo (x2).
-    coef2 = lu_solve(A2, y2);  % Resolve o sistema para obter os coeficientes do modelo 2.
-    y2_pred = A2 * coef2;  % Calcula as previsões para y2 usando os coeficientes obtidos.
-    Sr2 = sum((y2 - y2_pred).^2);  % Calcula a soma dos resíduos quadráticos para o modelo 2.
-    St2 = sum((y2 - mean(y2)).^2);  % Calcula a soma total dos quadrados para o modelo 2.
-    r2_2 = 1 - (Sr2 / St2);  % Calcula o coeficiente de determinação R² para o modelo 2.
-    syx2 = sqrt(Sr2 / (n - 2));  % Calcula o erro padrão da estimativa para o modelo 2.
-end
-
 % Função solve_lu para resolver Ax = b usando decomposição LU
 function x = solve_lu(A, b)
     [L, U, P] = lu(A);  % Decomposição LU com pivotamento
@@ -104,8 +68,11 @@ endfunction
 function y = substituicao_progressiva(L, b)
     n = length(b);
     y = zeros(n, 1);
+    num_cols = columns(L);  % Número de colunas em L
     for i = 1:n
-        y(i) = (b(i) - L(i, 1:i-1) * y(1:i-1)) / L(i, i);
+        % Garante que não acesse colunas fora do limite de L
+        col_limit = min(i - 1, num_cols);
+        y(i) = (b(i) - L(i, 1:col_limit) * y(1:col_limit)) / L(i, i);
     endfor
 endfunction
 
@@ -117,6 +84,43 @@ function x = substituicao_regressiva(U, y)
         x(i) = (y(i) - U(i, i+1:n) * x(i+1:n)) / U(i, i);
     endfor
 endfunction
+
+% Função de regressão linear para evitar subdimensionamento
+function [slope, intercept] = linear_regression(x, y)
+    n = length(x);
+    X = [ones(n, 1), x(:)];  % Garante que x seja vetor coluna
+    A = X' * X;
+    b = X' * y(:);  % Garante que y seja vetor coluna
+    coeffs = solve_lu(A, b);
+    intercept = coeffs(1);
+    slope = coeffs(2);
+endfunction
+
+% Function for performing double regression and obtaining metrics
+% Função para realizar regressão dupla e obter métricas
+% Função para regressão dupla com matriz de design adequada
+function [coef1, coef2, Sr1, Sr2, r2_1, r2_2, syx1, syx2] = regressao_dupla(x1, y1, x2, y2)
+    n = length(x1);
+
+    % Modelo 1
+    A1 = [ones(n, 1), x1(:)];
+    coef1 = solve_lu(A1' * A1, A1' * y1(:));
+    y1_pred = A1 * coef1;
+    Sr1 = sum((y1(:) - y1_pred).^2);
+    St1 = sum((y1(:) - mean(y1)).^2);
+    r2_1 = 1 - (Sr1 / St1);
+    syx1 = sqrt(Sr1 / (n - 2));
+
+    % Modelo 2
+    A2 = [ones(n, 1), x2(:)];
+    coef2 = solve_lu(A2' * A2, A2' * y2(:));
+    y2_pred = A2 * coef2;
+    Sr2 = sum((y2(:) - y2_pred).^2);
+    St2 = sum((y2(:) - mean(y2)).^2);
+    r2_2 = 1 - (Sr2 / St2);
+    syx2 = sqrt(Sr2 / (n - 2));
+endfunction
+
 
 % ===================== Main Script ===================== %
 
@@ -360,15 +364,18 @@ best_Sr = [];     % Inicializa a variável para a soma dos resíduos do melhor m
 best_syx = [];    % Inicializa a variável para o desvio padrão dos resíduos do melhor modelo
 
 
-for i = 1:size(combinations, 1) % Loop para testar cada combinação de modelos
-    X = combinations{i, 1};  % Variáveis independentes
+for i = 1
+    X = combinations{1};  % Variáveis independentes
     model_name = combinations{i, 2};  % Nome do modelo
 
     % Adiciona uma coluna de 1's para o intercepto
     X = [X, ones(size(X, 1), 1)];
 
+    % Verifica se X e y3 têm o mesmo número de linhas
+    assert(size(X, 1) == length(y3), 'X e y3 devem ter o mesmo número de linhas');
+
     % Calcula os coeficientes usando decomposição LU
-    coef = lu_solve(X, y3); % Chama a função para resolver o sistema usando decomposição LU
+    coef = solve_lu(X' * X, X' * y3); % Usa solve_lu para resolver o sistema linear
     y_pred = X * coef;  % Prediz os valores
 
     % Calcula a soma dos resíduos
