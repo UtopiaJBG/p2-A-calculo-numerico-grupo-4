@@ -23,3 +23,10 @@ A média mais baixa em variáveis de frequência para o grupo Parkinson sugere q
 O aumento no desvio padrão indica uma maior dificuldade em manter consistência vocal, o que é característico dos sintomas motores de Parkinson, como a rigidez e o tremor que dificultam o controle preciso dos músculos vocais.
 
 Anáise 3.3
+
+Baixo Coeficiente de Determinação (R²): O valor de 𝑅2 = 0.1414 indica que o modelo explica apenas cerca de 14,14% da variabilidade dos
+dados de resposta. Em modelos de regressão, um 𝑅2 mais próximo de 1 sugere que o modelo é eficaz para capturar a variação da variável dependente.
+No entanto, com um valor de 0,1414, a maior parte da variabilidade no status de Parkinson não é explicada por essa combinação de variáveis.
+
+Desvio Padrão dos Resíduos (syx): O desvio padrão dos resíduos, 𝑠𝑦𝑥=0.4023, sugere que as previsões do modelo têm uma variação relativamente alta
+em torno da linha de regressão. Isso indica que o modelo apresenta um erro considerável ao prever novos dados, o que reduz sua confiabilidade para diagnósticos.
